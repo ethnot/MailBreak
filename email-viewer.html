@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FilterMail — Gmail-style MBOX Viewer</title>
+  <style>
+    :root{
+      --bg:#0b0e14; --card:#11151f; --muted:#2a3140; --ink:#e6edf3; --ink-dim:#b7c0cc; --accent:#4aa3ff; --accent-2:#7c4dff; --chip:#1b2230; --danger:#ff4769;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    .app{display:grid;grid-template-columns:260px 1fr;grid-template-rows:56px 1fr;grid-template-areas:"topbar topbar" "sidebar content";height:100%}
+    .topbar{grid-area:topbar;display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--muted);background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0));backdrop-filter:saturate(120%) blur(6px);position:sticky;top:0;z-index:5}
+    .brand{font-weight:700;letter-spacing:.2px}
+    .brand b{color:var(--accent)}
+    .btn{border:1px solid var(--muted);background:#0e131c;color:var(--ink);padding:8px 10px;border-radius:10px;cursor:pointer}
+    .btn:hover{border-color:#3a4458}
+    .file{display:none}
+    .pill{padding:6px 10px;border:1px solid var(--muted);border-radius:999px;background:#0e131c}
+    .search{flex:1;display:flex;align-items:center;gap:8px;border:1px solid var(--muted);background:#0e131c;border-radius:12px;padding:6px 10px}
+    .search input{flex:1;background:transparent;border:0;outline:0;color:var(--ink)}
+    .sidebar{grid-area:sidebar;border-right:1px solid var(--muted);overflow:auto;padding:12px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0));}
+    .section{margin:8px 0 16px}
+    .section h4{margin:10px 10px;color:var(--ink-dim);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+    .nav{display:flex;flex-direction:column;gap:4px}
+    .nav button{all:unset;display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;color:var(--ink-dim);cursor:pointer}
+    .nav button.active,.nav button:hover{background:#121826;color:var(--ink)}
+    .badge{margin-left:auto;background:var(--chip);border:1px solid var(--muted);color:var(--ink-dim);padding:0 8px;border-radius:999px;font-size:12px}
+    .labels{display:flex;flex-wrap:wrap;gap:6px;padding:6px 10px}
+    .chip{background:var(--chip);border:1px solid var(--muted);padding:6px 10px;border-radius:999px;color:var(--ink-dim);cursor:pointer}
+    .chip.active{background:#172036;color:var(--ink);border-color:#3a4458}
+    .drop{border:2px dashed #2f394b;border-radius:12px;padding:12px;margin:6px 10px;color:var(--ink-dim);text-align:center}
+
+    .content{grid-area:content;display:grid;grid-template-columns:420px 1fr;min-height:0}
+    .list{border-right:1px solid var(--muted);overflow:auto;background:var(--card)}
+    .row{display:grid;grid-template-columns: 1fr 120px 140px;gap:10px;padding:12px 14px;border-bottom:1px solid #131a27;cursor:pointer}
+    .row:hover{background:#0f1420}
+    .row.active{background:#141b2a}
+    .subj{font-weight:600;color:var(--ink)}
+    .from{color:var(--ink-dim)}
+    .labels-mini{display:flex;gap:6px;flex-wrap:wrap}
+    .label-pill{font-size:11px;background:#182034;border:1px solid #2a3140;color:#a9b5c5;border-radius:999px;padding:2px 6px}
+    .date{text-align:right;color:#9fb1c7;font-variant-numeric:tabular-nums}
+
+    .viewer{overflow:auto;position:relative}
+    .viewer .head{padding:16px;border-bottom:1px solid var(--muted);background:var(--card)}
+    .viewer h2{margin:0 0 8px;font-size:20px}
+    .kv{display:grid;grid-template-columns:110px 1fr;gap:8px;color:var(--ink-dim);font-size:13px}
+    .kv div b{color:var(--ink);font-weight:600}
+    .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+    .body{padding:20px}
+    .body .htmlbox{border:1px solid var(--muted);border-radius:12px;overflow:hidden;background:#0e131c}
+    .body iframe{width:100%;height:60vh;border:0;background:white}
+    .body pre{white-space:pre-wrap;word-wrap:break-word;background:#0e131c;border:1px solid var(--muted);padding:14px;border-radius:12px}
+    .attachments{padding:0 20px 20px}
+    .att{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--muted);border-radius:10px;padding:8px 12px;margin-top:8px;background:#0f1420}
+    .att .meta{font-size:13px;color:var(--ink-dim)}
+    .hidden{display:none}
+    .small{font-size:12px;color:var(--ink-dim)}
+    .progress{height:6px;background:#12192a;border-radius:999px;overflow:hidden}
+    .progress>div{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0%}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">📥 <b>FilterMail</b> Viewer</div>
+      <label class="btn" title="Open .mbox file">
+        <input id="file" class="file" type="file" accept=".mbox,.mbx,text/plain" />
+        Open .mbox
+      </label>
+      <div id="dropzone" class="pill">Drag & drop .mbox here</div>
+      <div class="search">
+        🔎 <input id="q" placeholder="Search (from, subject, body) — press Enter" />
+      </div>
+      <div class="pill small" id="status">No file loaded</div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="section">
+        <h4>Mailboxes</h4>
+        <div class="nav" id="navBoxes"></div>
+      </div>
+      <div class="section">
+        <h4>Labels</h4>
+        <div class="labels" id="labelChips"></div>
+        <div class="drop small">Gmail exports often include <code>X-Gmail-Labels</code> — we'll use those here.</div>
+      </div>
+      <div class="section">
+        <h4>Load Progress</h4>
+        <div class="progress" title="Parsing progress"><div id="bar"></div></div>
+        <div class="small" id="meta"></div>
+      </div>
+    </aside>
+
+    <section class="content">
+      <div class="list" id="list"></div>
+      <div class="viewer" id="viewer">
+        <div class="head">
+          <h2 id="vSubject">Open an email</h2>
+          <div class="kv small">
+            <div>From</div><div id="vFrom"><b>—</b></div>
+            <div>To</div><div id="vTo">—</div>
+            <div>Date</div><div id="vDate">—</div>
+            <div>Message-ID</div><div id="vMsgId">—</div>
+          </div>
+          <div class="chips" id="vLabels"></div>
+        </div>
+        <div class="body" id="vBody">
+          <div class="htmlbox hidden" id="htmlBox"><iframe id="htmlFrame"></iframe></div>
+          <pre id="textBox" class="hidden"></pre>
+        </div>
+        <div class="attachments" id="vAtts"></div>
+      </div>
+    </section>
+  </div>
+
+<script>
+// ---------- Utilities ----------
+const fmtDate = d => d ? new Date(d).toLocaleString() : "";
+const esc = s => (s||"").replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));
+
+// Basic quoted-printable decode (used for some attachments)
+const qpDecode = (str) => {
+  return str
+    .replace(/=\r?\n/g, "")
+    .replace(/=([0-9A-Fa-f]{2})/g, (_,h) => String.fromCharCode(parseInt(h,16)));
+};
+
+const parseAddrs = (v) => (v||"")
+  .split(/,\s*(?![^<]*>)/).map(s=>s.trim()).filter(Boolean).join(", ");
+
+// Robust mbox splitter (line-based)
+function splitMbox(text, onChunk) {
+  const lines = text.split(/\r?\n/);
+  const parts = [];
+  let current = [];
+  let count = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.startsWith("From ") && current.length) {
+      const chunk = current.join("\n");
+      if (chunk.trim()) {
+        parts.push(chunk);
+        count++;
+        if (onChunk) onChunk(count);
+      }
+      current = [];
+      continue;
+    }
+    current.push(line);
+  }
+
+  const tail = current.join("\n");
+  if (tail.trim()) {
+    parts.push(tail);
+    count++;
+    if (onChunk) onChunk(count);
+  }
+  return parts;
+}
+
+// ---------- Recursive MIME parser ----------
+
+function parseSimpleHeaders(raw) {
+  const lines = raw.split(/\r?\n/);
+  const out = []; let cur = "";
+  for (const ln of lines) {
+    if (/^\s/.test(ln)) cur += " " + ln.trim();
+    else { if (cur) out.push(cur); cur = ln.trim(); }
+  }
+  if (cur) out.push(cur);
+  const map = {};
+  for (const l of out) {
+    const i = l.indexOf(":");
+    if (i < 0) continue;
+    const k = l.slice(0, i).toLowerCase();
+    const v = l.slice(i + 1).trim();
+    (map[k] ||= []).push(v);
+  }
+  return {
+    raw: out,
+    get: (k) => map[k]?.[0] || "",
+    getAll: (k) => map[k] || [],
+  };
+}
+
+function parseContentType(ct) {
+  ct = (ct || "text/plain").trim();
+  const [type, ...rest] = ct.split(";");
+  const media = type.trim().toLowerCase();
+  const params = {};
+  for (const piece of rest) {
+    const m = /([^=]+)=(.*)/.exec(piece.trim());
+    if (!m) continue;
+    let key = m[1].trim().toLowerCase();
+    let val = m[2].trim();
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    params[key] = val;
+  }
+  return { media, params };
+}
+
+function decodeBodyData(enc, data) {
+  enc = (enc || "").toLowerCase();
+  if (enc.includes("base64")) {
+    try { return atob(data.replace(/\s+/g, "")); } catch { return data; }
+  }
+  if (enc.includes("quoted-printable")) {
+    return data
+      .replace(/=\r?\n/g, "")
+      .replace(/=([0-9A-Fa-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  }
+  return data;
+}
+
+function splitMultipartBody(body, boundary) {
+  const delim = "--" + boundary;
+  const lines = body.split(/\r?\n/);
+  const parts = [];
+  let buf = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line === delim) {
+      if (buf) parts.push(buf.join("\n"));
+      buf = [];
+    } else if (line === delim + "--") {
+      if (buf) parts.push(buf.join("\n"));
+      buf = null;
+      break;
+    } else if (buf) {
+      buf.push(line);
+    }
+  }
+  if (buf && buf.length) parts.push(buf.join("\n"));
+  return parts;
+}
+
+// Build a tree: multipart nodes + leaf nodes
+function parseEntity(rawHeaders, rawBody) {
+  const H = parseSimpleHeaders(rawHeaders);
+  const { media, params } = parseContentType(H.get("content-type"));
+  const enc = H.get("content-transfer-encoding");
+  const disp = (H.get("content-disposition") || "").toLowerCase();
+
+  if (media.startsWith("multipart/")) {
+    const boundary = params.boundary;
+    if (!boundary) {
+      return { kind: "leaf", data: decodeBodyData(enc, rawBody), ct: media, charset: params.charset || "", disp, filename: "", enc };
+    }
+    const chunks = splitMultipartBody(rawBody, boundary);
+    const parts = chunks.map(ch => {
+      const seg = ch.split(/\r?\n\r?\n/);
+      const hdr = seg.shift() || "";
+      const bod = seg.join("\n\n");
+      return parseEntity(hdr, bod);
+    });
+    return { kind: "multipart", ct: media, parts };
+  } else {
+    let filename = "";
+    const cd = H.get("content-disposition") || "";
+    const ct = H.get("content-type") || "";
+    const m1 = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cd);
+    const m2 = /name\*?=(?:UTF-8''|")?([^";]+)/i.exec(ct);
+    filename = (m1 && m1[1]) || (m2 && m2[1]) || "";
+    try { filename = decodeURIComponent(filename); } catch {}
+    const data = decodeBodyData(enc, rawBody);
+    return { kind: "leaf", data, ct: media, charset: params.charset || "", disp, filename, enc };
+  }
+}
+
+function collectLeaves(node, out = []) {
+  if (!node) return out;
+  if (node.kind === "leaf") out.push(node);
+  else if (node.kind === "multipart") node.parts.forEach(p => collectLeaves(p, out));
+  return out;
+}
+
+function pickDisplayPart(node) {
+  const leaves = collectLeaves(node);
+  const nonAttach = leaves.filter(p => !/attachment/.test(p.disp) && !p.filename);
+  let pick = nonAttach.find(p => p.ct === "text/html") ||
+             nonAttach.find(p => p.ct.startsWith("text/html")) ||
+             nonAttach.find(p => p.ct === "text/plain") ||
+             nonAttach.find(p => p.ct.startsWith("text/plain"));
+  if (!pick) pick = leaves.find(p => p.ct === "text/plain") || leaves[0];
+  return pick || null;
+}
+
+function collectAttachments(node) {
+  const leaves = collectLeaves(node);
+  return leaves
+    .filter(p => /attachment/.test(p.disp) || p.filename)
+    .map(p => ({
+      filename: p.filename || "attachment",
+      mime: p.ct || "application/octet-stream",
+      enc: p.enc || "",
+      raw: p.data
+    }));
+}
+
+// Heuristic: trivial boilerplate body (e.g. "Shared from Word for Android")
+function isTrivialBody(s) {
+  const t = (s || "").trim();
+  if (t.length < 10) return true;
+  if (/shared from word for android/i.test(t)) return true;
+  return false;
+}
+
+function parseEmail(raw){
+  const spl = raw.split(/\r?\n\r?\n/);
+  const rawHeaders = spl.shift() || "";
+  const body = spl.join("\n\n");
+
+  const H = parseSimpleHeaders(rawHeaders);
+  const h = (k) => H.get(k.toLowerCase());
+  const subj = h("subject");
+  const from = h("from");
+  const to = h("to");
+  const date = h("date");
+  const msgId = h("message-id");
+  const labels = (h("x-gmail-labels") || "")
+    .split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/)
+    .map(s => s.trim().replace(/^"|"$/g, ""))
+    .filter(Boolean);
+
+  const root = parseEntity(rawHeaders, body);
+  const best = pickDisplayPart(root);
+  const attachments = collectAttachments(root);
+
+  let content = { kind: "text", value: "" };
+  if (best) {
+    const isHtml = (best.ct || "").includes("html");
+    const val = best.data;
+    if (isTrivialBody(val) && attachments.length) {
+      content = { kind: "text", value: "[This message contains attachments only]" };
+    } else {
+      content = { kind: isHtml ? "html" : "text", value: val };
+    }
+  }
+
+  return {
+    subject: subj || "(no subject)",
+    from, to, date, messageId: msgId,
+    labels,
+    content,
+    attachments,
+    headers: H
+  };
+}
+
+// ---------- App state ----------
+const state = {
+  emails: [],
+  filtered: [],
+  active: -1,
+  mailbox: 'All Mail',
+  labels: new Map(),
+  query: '',
+  labelFilter: null,
+};
+
+// ---------- Rendering ----------
+function renderNav(){
+  const el = document.getElementById('navBoxes');
+  el.innerHTML = '';
+  const boxes = [
+    {name:'Inbox', filter:(e)=>e.labels.includes('Inbox')},
+    {name:'Starred', filter:(e)=>e.labels.includes('Starred')},
+    {name:'Sent', filter:(e)=>/\bSent\b/.test(e.labels.join(','))},
+    {name:'Drafts', filter:(e)=>e.labels.includes('Drafts')},
+    {name:'Spam', filter:(e)=>e.labels.includes('Spam')},
+    {name:'Trash', filter:(e)=>e.labels.includes('Trash')},
+    {name:'All Mail', filter:(_)=>true},
+  ];
+  boxes.forEach(b=>{
+    const btn = document.createElement('button');
+    btn.textContent = b.name;
+    if(state.mailbox===b.name) btn.classList.add('active');
+    const count = state.emails.filter(b.filter).length;
+    const badge = document.createElement('span');
+    badge.className='badge';
+    badge.textContent = count;
+    btn.appendChild(badge);
+    btn.onclick = ()=>{ state.mailbox=b.name; filterEmails(); };
+    el.appendChild(btn);
+  });
+}
+
+function renderLabelChips(){
+  const el = document.getElementById('labelChips');
+  el.innerHTML='';
+  const labels = Array.from(state.labels.keys()).filter(l=>!['Inbox','Starred','Sent','Drafts','Spam','Trash'].includes(l)).sort();
+  const all = document.createElement('div');
+  all.className = 'chip' + (state.labelFilter? '': ' active');
+  all.textContent = 'All labels';
+  all.onclick = ()=>{ state.labelFilter=null; filterEmails(); };
+  el.appendChild(all);
+  labels.forEach(l=>{
+    const c = document.createElement('div');
+    c.className = 'chip' + (state.labelFilter===l? ' active': '');
+    c.textContent = l + ' (' + state.labels.get(l) + ')';
+    c.onclick = ()=>{ state.labelFilter = (state.labelFilter===l? null : l); filterEmails(); };
+    el.appendChild(c);
+  });
+}
+
+function filterEmails(){
+  const lowerQ = (state.query||'').toLowerCase();
+  const boxFilter = {
+    'Inbox': (e)=>e.labels.includes('Inbox'),
+    'Starred': (e)=>e.labels.includes('Starred'),
+    'Sent': (e)=>/\bSent\b/.test(e.labels.join(',')),
+    'Drafts': (e)=>e.labels.includes('Drafts'),
+    'Spam': (e)=>e.labels.includes('Spam'),
+    'Trash': (e)=>e.labels.includes('Trash'),
+    'All Mail': (_)=>true,
+  }[state.mailbox] || ((_)=>true);
+
+  state.filtered = state.emails.filter(e=>{
+    if(!boxFilter(e)) return false;
+    if(state.labelFilter && !e.labels.includes(state.labelFilter)) return false;
+    if(!lowerQ) return true;
+    const hay = (e.subject+"\n"+e.from+"\n"+(e.content.value||"")).toLowerCase();
+    return hay.includes(lowerQ);
+  }).sort((a,b)=> (new Date(b.date)) - (new Date(a.date)));
+
+  renderList();
+  renderNav();
+}
+
+function renderList(){
+  const list = document.getElementById('list');
+  list.innerHTML='';
+  state.filtered.forEach((e,idx)=>{
+    const row = document.createElement('div');
+    row.className = 'row' + (idx===state.active? ' active':'');
+    const left = document.createElement('div');
+    const subj = document.createElement('div'); subj.className='subj'; subj.textContent=e.subject||'(no subject)';
+    const from = document.createElement('div'); from.className='from small'; from.textContent=(e.from||'').replace(/\s*</,' <');
+    const labs = document.createElement('div'); labs.className='labels-mini';
+    e.labels.slice(0,4).forEach(l=>{ const p=document.createElement('span'); p.className='label-pill'; p.textContent=l; labs.appendChild(p); });
+    left.appendChild(subj); left.appendChild(from); left.appendChild(labs);
+
+    const mid = document.createElement('div'); mid.className='small'; mid.innerHTML = esc((e.to||'').split(',')[0]||'');
+
+    const right = document.createElement('div'); right.className='date'; right.textContent = fmtDate(e.date);
+
+    row.appendChild(left); row.appendChild(mid); row.appendChild(right);
+    row.onclick = ()=>{ state.active = idx; renderList(); openEmail(e); };
+    list.appendChild(row);
+  });
+}
+
+function openEmail(e){
+  document.getElementById('vSubject').textContent = e.subject;
+  document.getElementById('vFrom').innerHTML = '<b>'+esc(e.from||'')+'</b>';
+  document.getElementById('vTo').textContent = parseAddrs(e.to);
+  document.getElementById('vDate').textContent = fmtDate(e.date);
+  document.getElementById('vMsgId').textContent = e.messageId||'—';
+  const vL = document.getElementById('vLabels'); vL.innerHTML='';
+  e.labels.forEach(l=>{ const c=document.createElement('div'); c.className='chip'; c.textContent=l; vL.appendChild(c); });
+
+  const htmlBox = document.getElementById('htmlBox');
+  const textBox = document.getElementById('textBox');
+  if(e.content.kind==='html'){
+    htmlBox.classList.remove('hidden'); textBox.classList.add('hidden');
+    const iframe = document.getElementById('htmlFrame');
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    const safe = (e.content.value||"").replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,'');
+    doc.open();
+    doc.write('<!doctype html><html><head><meta charset="utf-8"></head><body>'+safe+'</body></html>');
+    doc.close();
+  } else {
+    htmlBox.classList.add('hidden'); textBox.classList.remove('hidden');
+    textBox.textContent = e.content.value || '';
+  }
+
+  const atts = document.getElementById('vAtts');
+  atts.innerHTML='';
+  if(e.attachments && e.attachments.length){
+    const h = document.createElement('div'); h.className='small'; h.style.margin='0 0 8px 0'; h.textContent='Attachments'; atts.appendChild(h);
+    const previewHolder = document.createElement('div'); previewHolder.style.marginTop='10px'; atts.appendChild(previewHolder);
+
+    e.attachments.forEach((a,i)=>{
+      const row = document.createElement('div'); row.className='att';
+      const meta = document.createElement('div'); meta.className='meta';
+      meta.textContent = (a.filename||('attachment-'+(i+1))) + ' · ' + (a.mime||'application/octet-stream');
+
+      function toBlob(){
+        let bin = a.raw || '';
+        if((a.enc||'').includes('base64')){
+          try {
+            const bytes = Uint8Array.from(atob(bin.replace(/\s+/g,'')), c=>c.charCodeAt(0));
+            return new Blob([bytes], {type:a.mime||'application/octet-stream'});
+          } catch {
+            return new Blob([bin], {type:'text/plain'});
+          }
+        } else if((a.enc||'').includes('quoted-printable')){
+          const txt = qpDecode(bin);
+          return new Blob([txt], {type:a.mime||'application/octet-stream'});
+        }
+        return new Blob([bin], {type:a.mime||'application/octet-stream'});
+      }
+
+      const dl = document.createElement('button'); dl.className='btn'; dl.textContent='Download';
+      dl.onclick = ()=>{
+        const blob = toBlob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a'); link.href=url; link.download=a.filename||'attachment';
+        document.body.appendChild(link); link.click(); link.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),5000);
+      };
+
+      const vw = document.createElement('button'); vw.className='btn'; vw.textContent='View';
+      vw.onclick = ()=>{
+        const blob = toBlob();
+        const url = URL.createObjectURL(blob);
+        previewHolder.innerHTML='';
+        if((a.mime||'').startsWith('image/')){
+          const img = document.createElement('img'); img.src=url; img.style.maxWidth='100%'; img.style.border='1px solid var(--muted)'; img.style.borderRadius='12px'; previewHolder.appendChild(img);
+        } else if(a.mime==='application/pdf'){
+          const frame = document.createElement('iframe'); frame.src=url; frame.style.width='100%'; frame.style.height='70vh'; frame.style.border='0'; previewHolder.appendChild(frame);
+        } else {
+          const p = document.createElement('div'); p.className='small'; p.textContent='Preview not supported for this type; try Download.'; previewHolder.appendChild(p);
+        }
+      };
+
+      row.appendChild(meta); row.appendChild(vw); row.appendChild(dl); atts.appendChild(row);
+    });
+  }
+}
+
+// ---------- File loading ----------
+const fileInput = document.getElementById('file');
+const dropzone = document.getElementById('dropzone');
+const q = document.getElementById('q');
+const statusEl = document.getElementById('status');
+const bar = document.getElementById('bar');
+const meta = document.getElementById('meta');
+
+function updateStatus(txt){ statusEl.textContent = txt; }
+
+function handleFile(file){
+  updateStatus('Reading '+file.name+' …');
+  const reader = new FileReader();
+  const t0 = performance.now();
+  reader.onload = () => {
+    const text = reader.result;
+    updateStatus('Splitting messages…');
+    const parts = splitMbox(text, (n)=>{ bar.style.width = Math.min(90, 10 + n%80) + '%'; });
+    const total = parts.length; let done=0;
+    const emails = [];
+    for(const chunk of parts){
+      const em = parseEmail(chunk);
+      emails.push(em);
+      done++;
+      if(done % 50 === 0){ bar.style.width = (10 + Math.floor(80*done/total)) + '%'; }
+    }
+    state.emails = emails;
+    state.labels = new Map();
+    emails.forEach(e=>{ e.labels.forEach(l=> state.labels.set(l, (state.labels.get(l)||0)+1)); });
+    state.query=''; state.labelFilter=null; state.mailbox='All Mail'; state.active=-1;
+    filterEmails(); renderLabelChips(); renderNav();
+    bar.style.width='100%';
+    const ms = Math.max(1, Math.round(performance.now()-t0));
+    meta.textContent = `${emails.length} messages · ${(file.size/1e6).toFixed(2)} MB · parsed in ${ms} ms`;
+    updateStatus('Loaded');
+  };
+  reader.onerror = () => updateStatus('Error reading file');
+  reader.readAsText(file);
+}
+
+fileInput.addEventListener('change', (e)=>{
+  const f = e.target.files?.[0]; if(f) handleFile(f);
+});
+
+['dragenter','dragover'].forEach(ev=>dropzone.addEventListener(ev,(e)=>{e.preventDefault(); dropzone.style.borderColor='var(--accent)';}));
+['dragleave','drop'].forEach(ev=>dropzone.addEventListener(ev,(e)=>{e.preventDefault(); dropzone.style.borderColor='var(--muted)';}));
+
+dropzone.addEventListener('drop', (e)=>{ const f = e.dataTransfer.files?.[0]; if(f) handleFile(f); });
+
+q.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ state.query = q.value.trim(); filterEmails(); }});
+
+// Initial render
+renderNav(); renderLabelChips();
+</script>
+</body>
+</html>
